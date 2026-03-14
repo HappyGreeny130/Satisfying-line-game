@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wiggly Snake Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: sans-serif; }
+        canvas { display: block; }
+        #score { position: absolute; top: 20px; left: 20px; color: white; font-size: 24px; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        let width, height;
+        let score = 0;
+        let mouse = { x: 0, y: 0 };
+        
+        // Snake properties
+        const segments = [];
+        const segmentCount = 20;
+        const segmentDist = 10;
+        let snakeLength = 20;
+
+        // Food properties
+        let food = { x: 0, y: 0, radius: 8 };
+
+        function init() {
+            resize();
+            mouse.x = width / 2;
+            mouse.y = height / 2;
+            
+            // Create initial segments
+            for (let i = 0; i < snakeLength; i++) {
+                segments.push({ x: mouse.x, y: mouse.y });
+            }
+            spawnFood();
+            loop();
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        function spawnFood() {
+            food.x = Math.random() * (width - 40) + 20;
+            food.y = Math.random() * (height - 40) + 20;
+        }
+
+        window.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        function update() {
+            // Head follows mouse
+            segments[0].x += (mouse.x - segments[0].x) * 0.2;
+            segments[0].y += (mouse.y - segments[0].y) * 0.2;
+
+            // Segments follow each other
+            for (let i = 1; i < segments.length; i++) {
+                const seg = segments[i];
+                const prev = segments[i - 1];
+                const dx = prev.x - seg.x;
+                const dy = prev.y - seg.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > segmentDist) {
+                    const angle = Math.atan2(dy, dx);
+                    seg.x = prev.x - Math.cos(angle) * segmentDist;
+                    seg.y = prev.y - Math.sin(angle) * segmentDist;
+                }
+            }
+
+            // Check food collision
+            const dx = segments[0].x - food.x;
+            const dy = segments[0].y - food.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 20) {
+                score++;
+                scoreElement.innerText = `Score: ${score}`;
+                spawnFood();
+                // Add a new segment to make it longer
+                segments.push({ ...segments[segments.length - 1] });
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Food
+            ctx.fillStyle = '#ff4757';
+            ctx.beginPath();
+            ctx.arc(food.x, food.y, food.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw Wiggly Line
+            ctx.strokeStyle = '#2ed573';
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(segments[0].x, segments[0].y);
+            for (let i = 1; i < segments.length; i++) {
+                ctx.lineTo(segments[i].x, segments[i].y);
+            }
+            ctx.stroke();
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('resize', resize);
+        init();
+    </script>
+</body>
+</html>
+
